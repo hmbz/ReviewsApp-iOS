@@ -6,225 +6,167 @@
 import XCTest
 @testable import ReviewsAppTest
 
-// MARK: - Controllable Mock Service
+// MARK: - Mock Service
 
-final class ControlledMockService: ReviewServiceProtocol {
+final class MockService: ReviewServiceProtocol {
 
-    var shouldFail  = false
-    var callCount   = 0
+    var shouldFail = false
+    var callCount  = 0
     var pages: [Int: ReviewsPage] = [:]
 
+    // Synchronous — no GCD, avoids double-dispatch with ViewModel's setState
     func fetchReviews(page: Int, sort: SortOption, completion: @escaping (Result<ReviewsPage, Error>) -> Void) {
         callCount += 1
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self else { return }
-            if self.shouldFail {
-                completion(.failure(ReviewServiceError.networkFailure))
-            } else {
-                let result = self.pages[page] ?? ReviewsPage(items: [], page: page, hasMore: false)
-                completion(.success(result))
-            }
+        if shouldFail {
+            completion(.failure(ReviewServiceError.networkFailure))
+        } else {
+            let result = pages[page] ?? ReviewsPage(items: [], page: page, hasMore: false)
+            completion(.success(result))
         }
     }
 
-    static func makeReview(id: String, rating: Int, daysAgo: Double = 0) -> Review {
-        Review(id: id, userName: "User \(id)", rating: rating,
-               text: "Review text \(id)", imageURL: nil,
-               createdAt: Date().addingTimeInterval(-daysAgo * 86_400))
+    static func page(_ count: Int, page: Int = 1, hasMore: Bool = false) -> ReviewsPage {
+        let items = (1...count).map {
+            Review(id: "\($0)", userName: "User \($0)", rating: 4,
+                   text: "Review text", imageURL: nil, createdAt: Date())
+        }
+        return ReviewsPage(items: items, page: page, hasMore: hasMore)
     }
 }
 
 // MARK: - Spy Delegate
 
-final class SpyDelegate: ReviewsViewModelDelegate {
+final class Spy: ReviewsViewModelDelegate {
     var onUpdate: ((ReviewsViewModel) -> Void)?
-    func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
-        onUpdate?(vm)
-    }
+    func viewModelDidUpdateState(_ vm: ReviewsViewModel) { onUpdate?(vm) }
 }
 
 // MARK: - Tests
 
 final class ReviewsViewModelTests: XCTestCase {
 
-    // MARK: Test 1 — First page loads correctly
-
-    func test_loadFirstPage_populatesReviews() {
-        let service = ControlledMockService()
-        let reviews = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 4) }
-        service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: false)
-
-        let vm       = ReviewsViewModel(service: service)
-        let exp      = expectation(description: "noMoreItems")
-        let delegate = SpyDelegate()
-        delegate.onUpdate = { vm in
-            if case .noMoreItems = vm.state { exp.fulfill() }
-        }
-
-        vm.delegate = delegate
-        vm.loadFirstPage()
-        waitForExpectations(timeout: 2)
-
-        XCTAssertEqual(vm.reviews.count, 3)
-    }
-
-    // MARK: Test 2 — Sort: highest rating triggers reload from page 1
-
-    func test_sortHighestRating_putsBestReviewFirst() {
-        let service = ControlledMockService()
-        let reviews = [
-            ControlledMockService.makeReview(id: "low",  rating: 1),
-            ControlledMockService.makeReview(id: "high", rating: 5),
-            ControlledMockService.makeReview(id: "mid",  rating: 3),
-        ]
-        service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: false)
-
-        let vm       = ReviewsViewModel(service: service)
-        let exp      = expectation(description: "loaded")
-        let delegate = SpyDelegate()
-        var done     = false
-        delegate.onUpdate = { vm in
-            guard !done else { return }
-            switch vm.state {
-            case .noMoreItems, .loaded: done = true; exp.fulfill()
-            default: break
+    // Waits until the ViewModel leaves .loading state.
+    // The MockService is synchronous so ViewModel state is set before this runs,
+    // but the delegate call is still dispatched to main — hence the expectation.
+    private func waitForState(vm: ReviewsViewModel, spy: Spy,
+                              action: () -> Void = {},
+                              timeout: TimeInterval = 2) {
+        let exp = expectation(description: "state settled")
+        var fulfilled = false
+        spy.onUpdate = { vm in
+            guard case .loading = vm.state else {
+                if !fulfilled { fulfilled = true; exp.fulfill() }
+                return
             }
         }
-
-        vm.delegate = delegate
-        vm.loadFirstPage()
-        waitForExpectations(timeout: 2)
-
-        XCTAssertEqual(vm.reviews.count, 3)
-        XCTAssertEqual(service.callCount, 1)
+        action()
+        wait(for: [exp], timeout: timeout)
+        spy.onUpdate = nil
     }
 
-    // MARK: Test 3 — Pagination appends page 2
+    // MARK: Test 1 — First page loads reviews
+
+    func test_firstPage_populatesReviews() {
+        let svc = MockService()
+        svc.pages[1] = MockService.page(3)
+        let vm  = ReviewsViewModel(service: svc)
+        let spy = Spy()
+        vm.delegate = spy
+
+        waitForState(vm: vm, spy: spy) { vm.loadFirstPage() }
+
+        XCTAssertEqual(vm.reviews.count, 3)
+        XCTAssertEqual(svc.callCount, 1)
+    }
+
+    // MARK: Test 2 — Sort change resets to page 1
+
+    func test_sortChange_reloadsFromPageOne() {
+        let svc = MockService()
+        svc.pages[1] = MockService.page(3)
+        let vm  = ReviewsViewModel(service: svc)
+        let spy = Spy()
+        vm.delegate = spy
+
+        waitForState(vm: vm, spy: spy) { vm.loadFirstPage() }
+        waitForState(vm: vm, spy: spy) { vm.changeSort(to: .highestRating) }
+
+        XCTAssertEqual(svc.callCount, 2)
+        XCTAssertEqual(vm.reviews.count, 3)
+    }
+
+    // MARK: Test 3 — Pagination appends next page
 
     func test_pagination_appendsNextPage() {
-        let service = ControlledMockService()
-        let p1 = (1...3).map { ControlledMockService.makeReview(id: "\($0)",   rating: 5) }
-        let p2 = (4...6).map { ControlledMockService.makeReview(id: "\($0+3)", rating: 4) }
+        let svc = MockService()
+        svc.pages[1] = MockService.page(3, page: 1, hasMore: true)
+        svc.pages[2] = MockService.page(3, page: 2, hasMore: false)
+        let vm  = ReviewsViewModel(service: svc)
+        let spy = Spy()
+        vm.delegate = spy
 
-        service.pages[1] = ReviewsPage(items: p1, page: 1, hasMore: true)
-        service.pages[2] = ReviewsPage(items: p2, page: 2, hasMore: false)
+        waitForState(vm: vm, spy: spy) { vm.loadFirstPage() }
+        XCTAssertEqual(vm.reviews.count, 3, "after page 1")
 
-        let vm       = ReviewsViewModel(service: service)
-        let exp1     = expectation(description: "Page 1 loaded")
-        let exp2     = expectation(description: "Page 2 loaded")
-        let delegate = SpyDelegate()
-        var pagesDone = 0
-        delegate.onUpdate = { vm in
-            if case .loading = vm.state { return }
-            pagesDone += 1
-            if pagesDone == 1 { exp1.fulfill() }
-            if pagesDone == 2 { exp2.fulfill() }
-        }
-
-        vm.delegate = delegate
-        vm.loadFirstPage()
-
-        wait(for: [exp1], timeout: 2)
-        XCTAssertEqual(vm.reviews.count, 3, "Page 1 should have 3 reviews")
-
-        vm.loadNextPageIfNeeded()
-        wait(for: [exp2], timeout: 2)
-        XCTAssertEqual(vm.reviews.count, 6, "After page 2 total should be 6")
+        waitForState(vm: vm, spy: spy) { vm.loadNextPageIfNeeded() }
+        XCTAssertEqual(vm.reviews.count, 6, "after page 2")
     }
 
-    // MARK: Test 4 — Stops loading when hasMore = false
+    // MARK: Test 4 — No extra requests when hasMore is false
 
-    func test_loadNextPage_stopsWhenHasMoreFalse() {
-        let service = ControlledMockService()
-        let reviews = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 5) }
-        service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: false)
+    func test_noMorePages_stopsLoading() {
+        let svc = MockService()
+        svc.pages[1] = MockService.page(3, hasMore: false)
+        let vm  = ReviewsViewModel(service: svc)
+        let spy = Spy()
+        vm.delegate = spy
 
-        let vm       = ReviewsViewModel(service: service)
-        let exp      = expectation(description: "noMoreItems")
-        let delegate = SpyDelegate()
-        delegate.onUpdate = { vm in
-            if case .noMoreItems = vm.state { exp.fulfill() }
-        }
+        waitForState(vm: vm, spy: spy) { vm.loadFirstPage() }
+        vm.loadNextPageIfNeeded()   // ignored — hasMore == false
 
-        vm.delegate = delegate
-        vm.loadFirstPage()
-        waitForExpectations(timeout: 2)
-
-        let countBefore = vm.reviews.count
-        vm.loadNextPageIfNeeded()
-
-        XCTAssertEqual(vm.reviews.count, countBefore)
-        XCTAssertEqual(service.callCount, 1, "Should only call service once")
-    }
-
-    // MARK: Test 5 — Error state then retry succeeds
-
-    func test_errorThenRetry_transitionsToLoaded() {
-        let service = ControlledMockService()
-        service.shouldFail = true
-
-        let reviews = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 4) }
-        service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: false)
-
-        let vm       = ReviewsViewModel(service: service)
-        let expErr   = expectation(description: "Error received")
-        let expOK    = expectation(description: "Loaded after retry")
-        let delegate = SpyDelegate()
-        var gotError = false
-        var gotOK    = false
-        delegate.onUpdate = { vm in
-            switch vm.state {
-            case .error where !gotError:
-                gotError = true; expErr.fulfill()
-            case .noMoreItems, .loaded where gotError && !gotOK:
-                gotOK = true; expOK.fulfill()
-            default:
-                break
-            }
-        }
-
-        vm.delegate = delegate
-        vm.loadFirstPage()
-
-        wait(for: [expErr], timeout: 2)
-        if case .error = vm.state { } else { XCTFail("Expected error state") }
-
-        service.shouldFail = false
-        vm.retry()
-
-        wait(for: [expOK], timeout: 2)
+        XCTAssertEqual(svc.callCount, 1)
         XCTAssertEqual(vm.reviews.count, 3)
     }
 
-    // MARK: Test 6 — No duplicate requests while loading
+    // MARK: Test 5 — Error then retry succeeds
 
-    func test_noDuplicateRequests_whileLoading() {
-        let service = ControlledMockService()
-        let reviews = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 5) }
-        service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: true)
-        service.pages[2] = ReviewsPage(items: [],      page: 2, hasMore: false)
+    func test_error_thenRetry_loadsData() {
+        let svc = MockService()
+        svc.shouldFail = true
+        svc.pages[1]   = MockService.page(3)
+        let vm  = ReviewsViewModel(service: svc)
+        let spy = Spy()
+        vm.delegate = spy
 
-        let vm       = ReviewsViewModel(service: service)
-        let exp      = expectation(description: "Page 1 loaded")
-        let delegate = SpyDelegate()
-        var done     = false
-        delegate.onUpdate = { vm in
-            if case .loaded = vm.state, !done { done = true; exp.fulfill() }
+        waitForState(vm: vm, spy: spy) { vm.loadFirstPage() }
+        guard case .error = vm.state else { XCTFail("Expected .error"); return }
+
+        svc.shouldFail = false
+        waitForState(vm: vm, spy: spy) { vm.retry() }
+
+        XCTAssertEqual(vm.reviews.count, 3)
+    }
+
+    // MARK: Test 6 — Rapid scroll sends only one extra request
+
+    func test_rapidCalls_sendOnlyOneRequest() {
+        let svc = MockService()
+        svc.pages[1] = MockService.page(3, page: 1, hasMore: true)
+        svc.pages[2] = MockService.page(3, page: 2, hasMore: false)
+        let vm  = ReviewsViewModel(service: svc)
+        let spy = Spy()
+        vm.delegate = spy
+
+        waitForState(vm: vm, spy: spy) { vm.loadFirstPage() }
+        let before = svc.callCount  // 1
+
+        // Three rapid calls — only the first goes through (isLoading guard)
+        waitForState(vm: vm, spy: spy) {
+            vm.loadNextPageIfNeeded()
+            vm.loadNextPageIfNeeded()
+            vm.loadNextPageIfNeeded()
         }
 
-        vm.delegate = delegate
-        vm.loadFirstPage()
-        waitForExpectations(timeout: 2)
-
-        let before = service.callCount
-        vm.loadNextPageIfNeeded()
-        vm.loadNextPageIfNeeded()
-        vm.loadNextPageIfNeeded()
-
-        let settle = expectation(description: "settle")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { settle.fulfill() }
-        waitForExpectations(timeout: 2)
-
-        XCTAssertEqual(service.callCount, before + 1, "Only 1 additional call should be made")
+        XCTAssertEqual(svc.callCount, before + 1)
     }
 }

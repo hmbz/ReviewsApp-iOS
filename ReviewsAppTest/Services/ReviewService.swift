@@ -50,36 +50,37 @@ final class MockReviewService: ReviewServiceProtocol {
     }()
 
     func fetchReviews(page: Int, sort: SortOption, completion: @escaping (Result<ReviewsPage, Error>) -> Void) {
-        // Simulate network delay
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.8) { [weak self] in
-            guard let self else { return }
+        // Capture all state on the calling thread (main) before going to background
+        let shouldFail  = self.shouldFail
+        let failOnPage  = self.failOnPage
+        let pageSize    = self.pageSize
+        let allReviews  = self.allReviews
 
-            // Simulate failure
-            if self.shouldFail || self.failOnPage == page {
+        // Simulate network delay
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.8) {
+            if shouldFail || failOnPage == page {
                 completion(.failure(ReviewServiceError.networkFailure))
                 return
             }
 
-            // Sort data
             let sorted: [Review]
             switch sort {
             case .newest:
-                sorted = self.allReviews.sorted { $0.createdAt > $1.createdAt }
+                sorted = allReviews.sorted { $0.createdAt > $1.createdAt }
             case .highestRating:
-                sorted = self.allReviews.sorted {
+                sorted = allReviews.sorted {
                     if $0.rating != $1.rating { return $0.rating > $1.rating }
-                    return $0.createdAt > $1.createdAt  // tie-break by date
+                    return $0.createdAt > $1.createdAt
                 }
             }
 
-            // Paginate
-            let startIndex = (page - 1) * self.pageSize
+            let startIndex = (page - 1) * pageSize
             guard startIndex < sorted.count else {
                 completion(.success(ReviewsPage(items: [], page: page, hasMore: false)))
                 return
             }
 
-            let endIndex  = min(startIndex + self.pageSize, sorted.count)
+            let endIndex  = min(startIndex + pageSize, sorted.count)
             let pageItems = Array(sorted[startIndex..<endIndex])
             let hasMore   = endIndex < sorted.count
 
