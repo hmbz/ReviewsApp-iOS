@@ -34,6 +34,15 @@ final class ControlledMockService: ReviewServiceProtocol {
     }
 }
 
+// MARK: - Spy Delegate
+
+final class SpyDelegate: ReviewsViewModelDelegate {
+    var onUpdate: ((ReviewsViewModel) -> Void)?
+    func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
+        onUpdate?(vm)
+    }
+}
+
 // MARK: - Tests
 
 final class ReviewsViewModelTests: XCTestCase {
@@ -41,33 +50,28 @@ final class ReviewsViewModelTests: XCTestCase {
     // MARK: Test 1 — First page loads correctly
 
     func test_loadFirstPage_populatesReviews() {
-        let service  = ControlledMockService()
-        let reviews  = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 4) }
+        let service = ControlledMockService()
+        let reviews = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 4) }
         service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: false)
 
-        let vm  = ReviewsViewModel(service: service)
-        let exp = expectation(description: "Loaded")
-
-        class D: ReviewsViewModelDelegate {
-            let e: XCTestExpectation
-            init(_ e: XCTestExpectation) { self.e = e }
-            func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
-                if case .noMoreItems = vm.state { e.fulfill() }
-            }
+        let vm       = ReviewsViewModel(service: service)
+        let exp      = expectation(description: "noMoreItems")
+        let delegate = SpyDelegate()
+        delegate.onUpdate = { vm in
+            if case .noMoreItems = vm.state { exp.fulfill() }
         }
 
-        vm.delegate = D(exp)
+        vm.delegate = delegate
         vm.loadFirstPage()
         waitForExpectations(timeout: 2)
 
         XCTAssertEqual(vm.reviews.count, 3)
     }
 
-    // MARK: Test 2 — Sort: highest rating puts 5-star first
+    // MARK: Test 2 — Sort: highest rating triggers reload from page 1
 
     func test_sortHighestRating_putsBestReviewFirst() {
         let service = ControlledMockService()
-        // Intentionally out of order
         let reviews = [
             ControlledMockService.makeReview(id: "low",  rating: 1),
             ControlledMockService.makeReview(id: "high", rating: 5),
@@ -75,21 +79,19 @@ final class ReviewsViewModelTests: XCTestCase {
         ]
         service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: false)
 
-        let vm  = ReviewsViewModel(service: service)
-        let exp = expectation(description: "Sorted")
-
-        class D: ReviewsViewModelDelegate {
-            let e: XCTestExpectation
-            init(_ e: XCTestExpectation) { self.e = e }
-            func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
-                if case .noMoreItems = vm.state { e.fulfill() }
-                if case .loaded      = vm.state { e.fulfill() }
+        let vm       = ReviewsViewModel(service: service)
+        let exp      = expectation(description: "loaded")
+        let delegate = SpyDelegate()
+        var done     = false
+        delegate.onUpdate = { vm in
+            guard !done else { return }
+            switch vm.state {
+            case .noMoreItems, .loaded: done = true; exp.fulfill()
+            default: break
             }
         }
 
-        vm.delegate = D(exp)
-        // Service returns as-is; real sorting happens in MockReviewService
-        // Here we test that changeSort triggers a full reload from page 1
+        vm.delegate = delegate
         vm.loadFirstPage()
         waitForExpectations(timeout: 2)
 
@@ -107,32 +109,27 @@ final class ReviewsViewModelTests: XCTestCase {
         service.pages[1] = ReviewsPage(items: p1, page: 1, hasMore: true)
         service.pages[2] = ReviewsPage(items: p2, page: 2, hasMore: false)
 
-        let vm   = ReviewsViewModel(service: service)
-        let exp1 = expectation(description: "Page 1")
-        let exp2 = expectation(description: "Page 2")
-
-        class D: ReviewsViewModelDelegate {
-            let e1, e2: XCTestExpectation
-            var loaded: Int = 0
-            init(_ e1: XCTestExpectation, _ e2: XCTestExpectation) { self.e1 = e1; self.e2 = e2 }
-            func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
-                if case .loading = vm.state { return }  // loading state ignore karo
-                loaded += 1
-                if loaded == 1 { e1.fulfill() }
-                if loaded == 2 { e2.fulfill() }
-            }
+        let vm       = ReviewsViewModel(service: service)
+        let exp1     = expectation(description: "Page 1 loaded")
+        let exp2     = expectation(description: "Page 2 loaded")
+        let delegate = SpyDelegate()
+        var pagesDone = 0
+        delegate.onUpdate = { vm in
+            if case .loading = vm.state { return }
+            pagesDone += 1
+            if pagesDone == 1 { exp1.fulfill() }
+            if pagesDone == 2 { exp2.fulfill() }
         }
 
-        let delegate = D(exp1, exp2)
-        vm.delegate  = delegate
+        vm.delegate = delegate
         vm.loadFirstPage()
 
         wait(for: [exp1], timeout: 2)
-        XCTAssertEqual(vm.reviews.count, 3, "Page 1 should have 3")
+        XCTAssertEqual(vm.reviews.count, 3, "Page 1 should have 3 reviews")
 
         vm.loadNextPageIfNeeded()
         wait(for: [exp2], timeout: 2)
-        XCTAssertEqual(vm.reviews.count, 6, "After page 2, total should be 6")
+        XCTAssertEqual(vm.reviews.count, 6, "After page 2 total should be 6")
     }
 
     // MARK: Test 4 — Stops loading when hasMore = false
@@ -142,23 +139,19 @@ final class ReviewsViewModelTests: XCTestCase {
         let reviews = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 5) }
         service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: false)
 
-        let vm  = ReviewsViewModel(service: service)
-        let exp = expectation(description: "Loaded")
-
-        class D: ReviewsViewModelDelegate {
-            let e: XCTestExpectation
-            init(_ e: XCTestExpectation) { self.e = e }
-            func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
-                if case .noMoreItems = vm.state { e.fulfill() }
-            }
+        let vm       = ReviewsViewModel(service: service)
+        let exp      = expectation(description: "noMoreItems")
+        let delegate = SpyDelegate()
+        delegate.onUpdate = { vm in
+            if case .noMoreItems = vm.state { exp.fulfill() }
         }
 
-        vm.delegate = D(exp)
+        vm.delegate = delegate
         vm.loadFirstPage()
         waitForExpectations(timeout: 2)
 
         let countBefore = vm.reviews.count
-        vm.loadNextPageIfNeeded()  // Should be ignored
+        vm.loadNextPageIfNeeded()
 
         XCTAssertEqual(vm.reviews.count, countBefore)
         XCTAssertEqual(service.callCount, 1, "Should only call service once")
@@ -167,33 +160,34 @@ final class ReviewsViewModelTests: XCTestCase {
     // MARK: Test 5 — Error state then retry succeeds
 
     func test_errorThenRetry_transitionsToLoaded() {
-        let service     = ControlledMockService()
+        let service = ControlledMockService()
         service.shouldFail = true
 
         let reviews = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 4) }
         service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: false)
 
-        let vm      = ReviewsViewModel(service: service)
-        let expErr  = expectation(description: "Error")
-        let expOK   = expectation(description: "Loaded after retry")
-
-        class D: ReviewsViewModelDelegate {
-            let eErr, eOK: XCTestExpectation
-            var gotError = false
-            init(_ err: XCTestExpectation, _ ok: XCTestExpectation) { eErr = err; eOK = ok }
-            func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
-                if case .error = vm.state, !gotError { gotError = true; eErr.fulfill() }
-                if case .noMoreItems = vm.state, gotError { eOK.fulfill() }
-                if case .loaded      = vm.state, gotError { eOK.fulfill() }
+        let vm       = ReviewsViewModel(service: service)
+        let expErr   = expectation(description: "Error received")
+        let expOK    = expectation(description: "Loaded after retry")
+        let delegate = SpyDelegate()
+        var gotError = false
+        var gotOK    = false
+        delegate.onUpdate = { vm in
+            switch vm.state {
+            case .error where !gotError:
+                gotError = true; expErr.fulfill()
+            case .noMoreItems, .loaded where gotError && !gotOK:
+                gotOK = true; expOK.fulfill()
+            default:
+                break
             }
         }
 
-        let delegate = D(expErr, expOK)
-        vm.delegate  = delegate
+        vm.delegate = delegate
         vm.loadFirstPage()
 
         wait(for: [expErr], timeout: 2)
-        if case .error = vm.state { /* pass */ } else { XCTFail("Expected error state") }
+        if case .error = vm.state { } else { XCTFail("Expected error state") }
 
         service.shouldFail = false
         vm.retry()
@@ -208,25 +202,21 @@ final class ReviewsViewModelTests: XCTestCase {
         let service = ControlledMockService()
         let reviews = (1...3).map { ControlledMockService.makeReview(id: "\($0)", rating: 5) }
         service.pages[1] = ReviewsPage(items: reviews, page: 1, hasMore: true)
-        service.pages[2] = ReviewsPage(items: [], page: 2, hasMore: false)
+        service.pages[2] = ReviewsPage(items: [],      page: 2, hasMore: false)
 
-        let vm  = ReviewsViewModel(service: service)
-        let exp = expectation(description: "Loaded")
-
-        class D: ReviewsViewModelDelegate {
-            let e: XCTestExpectation; var done = false
-            init(_ e: XCTestExpectation) { self.e = e }
-            func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
-                if case .loaded = vm.state, !done { done = true; e.fulfill() }
-            }
+        let vm       = ReviewsViewModel(service: service)
+        let exp      = expectation(description: "Page 1 loaded")
+        let delegate = SpyDelegate()
+        var done     = false
+        delegate.onUpdate = { vm in
+            if case .loaded = vm.state, !done { done = true; exp.fulfill() }
         }
 
-        vm.delegate = D(exp)
+        vm.delegate = delegate
         vm.loadFirstPage()
         waitForExpectations(timeout: 2)
 
         let before = service.callCount
-        // Fire 3 rapid calls — only 1 should go through
         vm.loadNextPageIfNeeded()
         vm.loadNextPageIfNeeded()
         vm.loadNextPageIfNeeded()
