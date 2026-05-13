@@ -110,13 +110,13 @@ final class ReviewsViewModelTests: XCTestCase {
         let vm   = ReviewsViewModel(service: service)
         let exp1 = expectation(description: "Page 1")
         let exp2 = expectation(description: "Page 2")
-        var loaded = 0
 
         class D: ReviewsViewModelDelegate {
             let e1, e2: XCTestExpectation
             var loaded: Int = 0
             init(_ e1: XCTestExpectation, _ e2: XCTestExpectation) { self.e1 = e1; self.e2 = e2 }
             func viewModelDidUpdateState(_ vm: ReviewsViewModel) {
+                if case .loading = vm.state { return }  // loading state ignore karo
                 loaded += 1
                 if loaded == 1 { e1.fulfill() }
                 if loaded == 2 { e2.fulfill() }
