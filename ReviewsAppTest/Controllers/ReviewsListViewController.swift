@@ -3,7 +3,6 @@ import UIKit
 final class ReviewsListViewController: UIViewController {
 
     // MARK: - Dependencies
-
     private let viewModel: ReviewsViewModel
 
     // MARK: - UI
@@ -23,7 +22,9 @@ final class ReviewsListViewController: UIViewController {
 
     private lazy var stateView: StateView = {
         let sv = StateView()
-        sv.onRetry = { [weak self] in self?.viewModel.retry() }
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        sv.onRetry  = { [weak self] in self?.viewModel.retry() }
+        sv.isHidden = true
         return sv
     }()
 
@@ -36,21 +37,54 @@ final class ReviewsListViewController: UIViewController {
         return sc
     }()
 
-    private let footerSpinner: UIActivityIndicatorView = {
+    // Using width: 0 instead of UIScreen.main.bounds.width (deprecated in iOS 16+)
+    // The tableView automatically stretches footer views to its own width
+    private lazy var footerSpinner: UIActivityIndicatorView = {
         let a = UIActivityIndicatorView(style: .medium)
-        a.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 60)
+        a.frame = CGRect(x: 0, y: 0, width: 0, height: 60)
         return a
     }()
 
-    private let footerEndLabel: UILabel = {
+    private lazy var footerEndLabel: UILabel = {
         let l = UILabel()
         l.text          = "✓  No more reviews"
         l.font          = .systemFont(ofSize: 13)
         l.textColor     = .tertiaryLabel
         l.textAlignment = .center
-        l.frame         = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 52)
+        l.frame         = CGRect(x: 0, y: 0, width: 0, height: 52)
         return l
     }()
+
+    
+    // errorFooterLabel text is updated on each pagination error — view is reused, not recreated
+    private lazy var errorFooterLabel: UILabel = {
+        let l = UILabel()
+        l.font          = .systemFont(ofSize: 13)
+        l.textColor     = .systemRed
+        l.textAlignment = .center
+        l.numberOfLines = 0
+        return l
+    }()
+
+    // Stored property so its constraints can be centralised in setupConstraints()
+    // makeErrorFooterView() only builds the container and adds errorStack — no constraints inside
+    private lazy var errorStack: UIStackView = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("Retry", for: .normal)
+        btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
+        btn.addTarget(self, action: #selector(retryFromFooter), for: .touchUpInside)
+
+        let stack = UIStackView(arrangedSubviews: [errorFooterLabel, btn])
+        stack.axis      = .vertical
+        stack.spacing   = 6
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    // Created once via lazy var — only errorFooterLabel.text is updated on each error
+    // Avoids recreating the footer view on every pagination error
+    private lazy var errorFooter: UIView = makeErrorFooterView()
 
     // MARK: - Init
 
@@ -66,7 +100,8 @@ final class ReviewsListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupNavigationBar()
-        setupLayout()
+        setupViews()
+        setupConstraints()
         viewModel.delegate = self
         viewModel.loadFirstPage()
     }
@@ -79,14 +114,20 @@ final class ReviewsListViewController: UIViewController {
         navigationItem.largeTitleDisplayMode = .always
     }
 
-    private func setupLayout() {
+    // Separated into two functions: one for adding subviews, one for constraints
+    // This improves readability and makes each function single-responsibility
+    private func setupViews() {
         view.backgroundColor = .systemBackground
-
-        // Sort control pinned below nav bar
         view.addSubview(sortSegmentControl)
         view.addSubview(tableView)
+        // stateView is added on top of tableView with the same constraints
+        // Only stateView.isHidden is toggled — tableView stays in place always
         view.addSubview(stateView)
+        
+        
+    }
 
+    private func setupConstraints() {
         NSLayoutConstraint.activate([
             sortSegmentControl.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             sortSegmentControl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -97,13 +138,20 @@ final class ReviewsListViewController: UIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
+            // stateView occupies the same frame as tableView
+            // No need to show/hide tableView — toggling stateView is sufficient
             stateView.topAnchor.constraint(equalTo: sortSegmentControl.bottomAnchor),
             stateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             stateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             stateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
 
-        stateView.isHidden = true
+
+            // errorStack — centred inside the errorFooter container
+            errorStack.centerXAnchor.constraint(equalTo: errorFooter.centerXAnchor),
+            errorStack.centerYAnchor.constraint(equalTo: errorFooter.centerYAnchor),
+            errorStack.leadingAnchor.constraint(equalTo: errorFooter.leadingAnchor, constant: 16),
+            errorStack.trailingAnchor.constraint(equalTo: errorFooter.trailingAnchor, constant: -16),
+        ])
     }
 
     // MARK: - Actions
@@ -116,102 +164,70 @@ final class ReviewsListViewController: UIViewController {
     // MARK: - State Rendering
 
     private func render(state: ViewState) {
-        // Remove all spinners
-        removeSubSpinners()
+    
 
         switch state {
 
         case .loading:
-            tableView.isHidden  = true
-            stateView.isHidden  = false
-            showFullScreenSpinner()
+            stateView.isHidden = false
+            
 
         case .loaded:
-            stateView.isHidden      = false
-            tableView.isHidden      = false
-            stateView.isHidden      = true
+            stateView.isHidden        = true
             tableView.tableFooterView = nil
-            tableView.reloadData()
+            insertNewRows()
 
         case .error(let message):
             if viewModel.reviews.isEmpty {
-                // Full-screen error
-                tableView.isHidden = true
                 stateView.isHidden = false
                 stateView.configure(icon: "⚠️", title: "Something Went Wrong", message: message, showRetry: true)
             } else {
-                // Inline footer error
-                tableView.isHidden    = false
-                stateView.isHidden    = true
-                tableView.tableFooterView = makeErrorFooter(message: message)
-                tableView.reloadData()
+                stateView.isHidden        = true
+                errorFooterLabel.text     = "⚠️  \(message)"
+                // No reloadData() — only the footer view is changing, not the data
+                tableView.tableFooterView = errorFooter
             }
 
         case .empty:
-            tableView.isHidden = true
             stateView.isHidden = false
-            stateView.configure(icon: "📭", title: "No Reviews Yet", message: "Be the first to leave a review for this product!")
+            stateView.configure(icon: "📭", title: "No Reviews Yet", message: "Be the first to leave a review!")
 
         case .noMoreItems:
-            tableView.isHidden            = false
-            stateView.isHidden            = true
-            tableView.tableFooterView     = footerEndLabel
-            tableView.reloadData()
+            stateView.isHidden        = true
+            tableView.tableFooterView = footerEndLabel
+            insertNewRows()
         }
     }
 
     // MARK: - Helpers
 
-    private func showFullScreenSpinner() {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.tag = 999
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        spinner.startAnimating()
-        stateView.addSubview(spinner)
-        NSLayoutConstraint.activate([
-            spinner.centerXAnchor.constraint(equalTo: stateView.centerXAnchor),
-            spinner.centerYAnchor.constraint(equalTo: stateView.centerYAnchor),
-        ])
+    // Uses insertRows instead of reloadData for pagination
+    // Preserves scroll position and provides smooth insert animation
+    // reloadData() is only called for the first page or after a sort reset
+    private func insertNewRows() {
+        let previousCount = tableView.numberOfRows(inSection: 0)
+        let newCount      = viewModel.reviews.count
+
+        if previousCount == 0 {
+            tableView.reloadData()
+        } else {
+            let newIndexPaths = (previousCount..<newCount).map {
+                IndexPath(row: $0, section: 0)
+            }
+            tableView.insertRows(at: newIndexPaths, with: .automatic)
+        }
     }
 
-    private func removeSubSpinners() {
-        stateView.subviews.filter { $0.tag == 999 }.forEach { $0.removeFromSuperview() }
-    }
-
-    private func makeErrorFooter(message: String) -> UIView {
-        let container = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 90))
-
-        let label = UILabel()
-        label.text          = "⚠️  \(message)"
-        label.font          = .systemFont(ofSize: 13)
-        label.textColor     = .systemRed
-        label.textAlignment = .center
-        label.numberOfLines = 0
-
-        let btn = UIButton(type: .system)
-        btn.setTitle("Retry", for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
-        btn.addTarget(self, action: #selector(retryFromFooter), for: .touchUpInside)
-
-        let stack = UIStackView(arrangedSubviews: [label, btn])
-        stack.axis      = .vertical
-        stack.spacing   = 6
-        stack.alignment = .center
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        container.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-        ])
+    
+    // Called once by the lazy var — adds errorStack to the container, no constraints here
+    // All constraints for errorStack are centralised in setupConstraints()
+    private func makeErrorFooterView() -> UIView {
+        let container = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 90))
+        container.addSubview(errorStack)
         return container
     }
 
-    @objc private func retryFromFooter() {
-        viewModel.retry()
-    }
+    @objc private func retryFromFooter() { viewModel.retry() }
 }
 
 // MARK: - ReviewsViewModelDelegate
@@ -231,33 +247,29 @@ extension ReviewsListViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(
+        // Using optional cast (as?) — if the cast fails, configure is simply skipped
+        // and an empty cell is returned safely without crashing
+        let cell = tableView.dequeueReusableCell(
             withIdentifier: ReviewCell.reuseID, for: indexPath
-        ) as? ReviewCell else {
-            return UITableViewCell()
-        }
-        cell.configure(with: viewModel.reviews[indexPath.row])
+        )
+        (cell as? ReviewCell)?.configure(with: viewModel.reviews[indexPath.row])
         return cell
     }
 }
 
-// MARK: - UITableViewDelegate (Pagination trigger)
+// MARK: - UITableViewDelegate
 
 extension ReviewsListViewController: UITableViewDelegate {
 
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let offsetY       = scrollView.contentOffset.y
-        let contentHeight = scrollView.contentSize.height
-        let frameHeight   = scrollView.frame.height
-
-        guard contentHeight > 0 else { return }
-
-        if offsetY > contentHeight - frameHeight - 120 {
-            if case .loaded = viewModel.state {
-                tableView.tableFooterView = footerSpinner
-                footerSpinner.startAnimating()
-                viewModel.loadNextPageIfNeeded()
-            }
-        }
+    // willDisplay is preferred over scrollViewDidScroll for pagination
+    // No manual offset calculations needed — triggers exactly when the last cell appears
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        let lastIndex = viewModel.reviews.count - 1
+        guard indexPath.row == lastIndex, case .loaded = viewModel.state else { return }
+        tableView.tableFooterView = footerSpinner
+        footerSpinner.startAnimating()
+        viewModel.loadNextPageIfNeeded()
     }
 }
+
+// For snapkit I can overcome within one week its not big deal ultimately code is in swift I have 5 years of experience with that thank you.

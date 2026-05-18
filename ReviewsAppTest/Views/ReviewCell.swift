@@ -170,7 +170,7 @@ final class ReviewCell: UITableViewCell {
     private func loadImage(from url: URL) {
         URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
             guard let self, let data, error == nil, let image = UIImage(data: data) else { return }
-            DispatchQueue.main.async { self.reviewImageView.image = image }
+            DispatchQueue.onMain { self.reviewImageView.image = image }
         }.resume()
     }
 }

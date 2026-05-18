@@ -102,7 +102,7 @@ final class ReviewsViewModel {
 
     private func setState(_ newState: ViewState) {
         state = newState
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.onMain { [weak self] in
             guard let self else { return }
             self.delegate?.viewModelDidUpdateState(self)
         }
