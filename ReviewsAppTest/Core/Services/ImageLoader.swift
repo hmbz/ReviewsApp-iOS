@@ -14,7 +14,12 @@ final class ImageLoader {
 
     /// Load image from URL — returns cached result immediately if available.
     /// Cancels any previously running task before starting a new one.
-    func load(from url: URL, completion: @escaping (UIImage?) -> Void) {
+    /// - Parameters:
+    ///   - completion: Called with the loaded image on success.
+    ///   - onError: Called when network fails or data cannot be decoded as an image.
+    func load(from url: URL,
+              completion: @escaping (UIImage) -> Void,
+              onError: @escaping () -> Void) {
         let key = url.absoluteString as NSString
 
         // Return from cache instantly — no network call needed
@@ -31,7 +36,7 @@ final class ImageLoader {
             if let urlError = error as? URLError, urlError.code == .cancelled { return }
 
             guard let data, let image = UIImage(data: data) else {
-                DispatchQueue.main.async { completion(nil) }
+                DispatchQueue.main.async { onError() }
                 return
             }
 

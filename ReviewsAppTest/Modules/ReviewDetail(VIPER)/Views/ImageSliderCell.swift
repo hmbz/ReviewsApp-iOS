@@ -18,10 +18,10 @@ final class ImageSliderCell: UICollectionViewCell {
     }()
 
     // Shown when URL is invalid or network request fails
-    private let placeholderView: UIImageView = {
+    private let errorView: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "photo")
-        iv.tintColor = .systemGray3
+        iv.image = UIImage(systemName: "exclamationmark.triangle")
+        iv.tintColor = .systemOrange
         iv.contentMode = .scaleAspectFit
         iv.isHidden = true
         return iv
@@ -32,12 +32,12 @@ final class ImageSliderCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
         contentView.addSubview(imageView)
-        contentView.addSubview(placeholderView)
+        contentView.addSubview(errorView)
 
         imageView.snp.makeConstraints { $0.edges.equalToSuperview() }
-        placeholderView.snp.makeConstraints {
+        errorView.snp.makeConstraints {
             $0.center.equalToSuperview()
-            $0.size.equalTo(60)
+            $0.size.equalTo(44)
         }
     }
 
@@ -45,16 +45,14 @@ final class ImageSliderCell: UICollectionViewCell {
 
     func configure(with urlString: String) {
         guard let url = URL(string: urlString) else {
-            showPlaceholder()   // invalid URL — show placeholder immediately
+            showError()   // invalid URL — no point making a network request
             return
         }
         loader.load(from: url) { [weak self] image in
-            if let image {
-                self?.imageView.image = image
-                self?.placeholderView.isHidden = true
-            } else {
-                self?.showPlaceholder()  // network failure or bad data
-            }
+            self?.imageView.image = image
+            self?.errorView.isHidden = true
+        } onError: { [weak self] in
+            self?.showError()  // network failure or bad image data
         }
     }
 
@@ -62,13 +60,13 @@ final class ImageSliderCell: UICollectionViewCell {
         super.prepareForReuse()
         loader.cancel()
         imageView.image = nil
-        placeholderView.isHidden = true
+        errorView.isHidden = true
     }
 
     // MARK: - Private
 
-    private func showPlaceholder() {
+    private func showError() {
         imageView.image = nil
-        placeholderView.isHidden = false
+        errorView.isHidden = false
     }
 }
