@@ -28,7 +28,7 @@ final class MockService: ReviewServiceProtocol {
     static func page(_ count: Int, page: Int = 1, hasMore: Bool = false) -> ReviewsPage {
         let items = (1...count).map {
             Review(id: "\($0)", userName: "User \($0)", rating: 4,
-                   text: "Review text", imageURL: nil, createdAt: Date())
+                   text: "Review text", imageURLs: [], createdAt: Date())
         }
         return ReviewsPage(items: items, page: page, hasMore: hasMore)
     }
