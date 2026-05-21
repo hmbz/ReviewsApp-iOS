@@ -1,4 +1,5 @@
 import UIKit
+import SnapKit
 
 final class ReviewsListViewController: UIViewController {
 
@@ -13,7 +14,6 @@ final class ReviewsListViewController: UIViewController {
         tv.separatorStyle     = .none
         tv.rowHeight          = UITableView.automaticDimension
         tv.estimatedRowHeight = 160
-        tv.translatesAutoresizingMaskIntoConstraints = false
         tv.register(ReviewCell.self, forCellReuseIdentifier: ReviewCell.reuseID)
         tv.dataSource = self
         tv.delegate   = self
@@ -22,7 +22,6 @@ final class ReviewsListViewController: UIViewController {
 
     private lazy var stateView: StateView = {
         let sv = StateView()
-        sv.translatesAutoresizingMaskIntoConstraints = false
         sv.onRetry  = { [weak self] in self?.viewModel.retry() }
         sv.isHidden = true
         return sv
@@ -32,7 +31,6 @@ final class ReviewsListViewController: UIViewController {
         let items = SortOption.allCases.map { $0.rawValue }
         let sc    = UISegmentedControl(items: items)
         sc.selectedSegmentIndex = 0
-        sc.translatesAutoresizingMaskIntoConstraints = false
         sc.addTarget(self, action: #selector(sortChanged(_:)), for: .valueChanged)
         return sc
     }()
@@ -55,7 +53,6 @@ final class ReviewsListViewController: UIViewController {
         return l
     }()
 
-    
     // errorFooterLabel text is updated on each pagination error — view is reused, not recreated
     private lazy var errorFooterLabel: UILabel = {
         let l = UILabel()
@@ -78,13 +75,20 @@ final class ReviewsListViewController: UIViewController {
         stack.axis      = .vertical
         stack.spacing   = 6
         stack.alignment = .center
-        stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
 
     // Created once via lazy var — only errorFooterLabel.text is updated on each error
     // Avoids recreating the footer view on every pagination error
     private lazy var errorFooter: UIView = makeErrorFooterView()
+
+    // Stored property so its constraints live in setupConstraints()
+    // showFullScreenSpinner() only toggles visibility — no layout code inside
+    private lazy var fullScreenSpinner: UIActivityIndicatorView = {
+        let s = UIActivityIndicatorView(style: .large)
+        s.isHidden = true
+        return s
+    }()
 
     // MARK: - Init
 
@@ -123,35 +127,40 @@ final class ReviewsListViewController: UIViewController {
         // stateView is added on top of tableView with the same constraints
         // Only stateView.isHidden is toggled — tableView stays in place always
         view.addSubview(stateView)
-        
-        
+        // fullScreenSpinner lives inside stateView — hidden until loading state
+        stateView.addSubview(fullScreenSpinner)
     }
 
     private func setupConstraints() {
-        NSLayoutConstraint.activate([
-            sortSegmentControl.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-            sortSegmentControl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            sortSegmentControl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+        sortSegmentControl.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(10)
+            make.leading.equalToSuperview().offset(16)
+            make.trailing.equalToSuperview().offset(-16)
+        }
 
-            tableView.topAnchor.constraint(equalTo: sortSegmentControl.bottomAnchor, constant: 10),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        tableView.snp.makeConstraints { make in
+            make.top.equalTo(sortSegmentControl.snp.bottom).offset(10)
+            make.leading.trailing.bottom.equalToSuperview()
+        }
 
-            // stateView occupies the same frame as tableView
-            // No need to show/hide tableView — toggling stateView is sufficient
-            stateView.topAnchor.constraint(equalTo: sortSegmentControl.bottomAnchor),
-            stateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            stateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            stateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        // stateView occupies the same frame as tableView
+        // No need to show/hide tableView — toggling stateView is sufficient
+        stateView.snp.makeConstraints { make in
+            make.top.equalTo(sortSegmentControl.snp.bottom)
+            make.leading.trailing.bottom.equalToSuperview()
+        }
 
+        // fullScreenSpinner — centred inside stateView
+        fullScreenSpinner.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
 
-            // errorStack — centred inside the errorFooter container
-            errorStack.centerXAnchor.constraint(equalTo: errorFooter.centerXAnchor),
-            errorStack.centerYAnchor.constraint(equalTo: errorFooter.centerYAnchor),
-            errorStack.leadingAnchor.constraint(equalTo: errorFooter.leadingAnchor, constant: 16),
-            errorStack.trailingAnchor.constraint(equalTo: errorFooter.trailingAnchor, constant: -16),
-        ])
+        // errorStack — centred inside the errorFooter container
+        errorStack.snp.makeConstraints { make in
+            make.centerX.centerY.equalTo(errorFooter)
+            make.leading.equalTo(errorFooter).offset(16)
+            make.trailing.equalTo(errorFooter).offset(-16)
+        }
     }
 
     // MARK: - Actions
@@ -164,13 +173,13 @@ final class ReviewsListViewController: UIViewController {
     // MARK: - State Rendering
 
     private func render(state: ViewState) {
-    
+        hideFullScreenSpinner()
 
         switch state {
 
         case .loading:
             stateView.isHidden = false
-            
+            showFullScreenSpinner()
 
         case .loaded:
             stateView.isHidden        = true
@@ -218,7 +227,18 @@ final class ReviewsListViewController: UIViewController {
         }
     }
 
-    
+    // Shows the pre-built spinner — no layout work here, constraints live in setupConstraints()
+    private func showFullScreenSpinner() {
+        fullScreenSpinner.isHidden = false
+        fullScreenSpinner.startAnimating()
+    }
+
+    // Hides the spinner without removing it — stays in hierarchy for reuse
+    private func hideFullScreenSpinner() {
+        fullScreenSpinner.stopAnimating()
+        fullScreenSpinner.isHidden = true
+    }
+
     // Called once by the lazy var — adds errorStack to the container, no constraints here
     // All constraints for errorStack are centralised in setupConstraints()
     private func makeErrorFooterView() -> UIView {
@@ -270,6 +290,11 @@ extension ReviewsListViewController: UITableViewDelegate {
         footerSpinner.startAnimating()
         viewModel.loadNextPageIfNeeded()
     }
-}
 
-// For snapkit I can overcome within one week its not big deal ultimately code is in swift I have 5 years of experience with that thank you.
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let review   = viewModel.reviewSelected(at: indexPath.row)
+        // Detail screen uses VIPER — Router assembles and returns the module
+        let detailVC = ReviewDetailRouter.createModule(with: review)
+        navigationController?.pushViewController(detailVC, animated: true)
+    }
+}

@@ -7,7 +7,7 @@ struct Review {
     let userName: String
     let rating: Int
     let text: String
-    let imageURL: String?
+    let imageURLs: [String]
     let createdAt: Date
 }
 

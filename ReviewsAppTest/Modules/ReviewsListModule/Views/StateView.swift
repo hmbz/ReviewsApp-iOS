@@ -1,4 +1,5 @@
 import UIKit
+import SnapKit
 
 final class StateView: UIView {
 
@@ -9,7 +10,6 @@ final class StateView: UIView {
         s.axis      = .vertical
         s.alignment = .center
         s.spacing   = 12
-        s.translatesAutoresizingMaskIntoConstraints = false
         return s
     }()
 
@@ -74,11 +74,11 @@ final class StateView: UIView {
         stackView.setCustomSpacing(8,  after: titleLabel)
         stackView.setCustomSpacing(28, after: messageLabel)
 
-        NSLayoutConstraint.activate([
-            stackView.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -30),
-            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 40),
-            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -40),
-        ])
+        stackView.snp.makeConstraints { make in
+            make.centerY.equalToSuperview().offset(-30)
+            make.leading.equalToSuperview().offset(40)
+            make.trailing.equalToSuperview().offset(-40)
+        }
 
         retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
     }
@@ -88,9 +88,9 @@ final class StateView: UIView {
     // MARK: - Configure
 
     func configure(icon: String, title: String, message: String, showRetry: Bool = false) {
-        iconLabel.text        = icon
-        titleLabel.text       = title
-        messageLabel.text     = message
-        retryButton.isHidden  = !showRetry
+        iconLabel.text       = icon
+        titleLabel.text      = title
+        messageLabel.text    = message
+        retryButton.isHidden = !showRetry
     }
 }

@@ -55,6 +55,11 @@ final class ReviewsViewModel {
         loadFirstPage()
     }
 
+    /// Returns the Review at the given index — used by the list VC to push the detail screen
+    func reviewSelected(at index: Int) -> Review {
+        return reviews[index]
+    }
+
     /// Call on retry tap
     func retry() {
         if reviews.isEmpty {
