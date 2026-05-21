@@ -7,6 +7,7 @@ protocol ReviewDetailPresenterProtocol: AnyObject {
 
     func viewDidLoad()
     func didTapExpandCollapse()
+    func didTapUserName()           // View tells Presenter — Presenter decides where to go
 }
 
 // MARK: - What the View (ViewController) does (called by Presenter)
@@ -21,4 +22,9 @@ protocol ReviewDetailViewProtocol: AnyObject {
 
 protocol ReviewDetailRouterProtocol: AnyObject {
     static func createModule(with review: Review) -> UIViewController
+
+    /// Navigate to the reviewer's profile screen.
+    /// - Parameter userId: Unique identifier of the reviewer.
+    /// Profile module is not yet implemented — navigation will be wired here when ready.
+    func navigateToProfile(for userId: String)
 }

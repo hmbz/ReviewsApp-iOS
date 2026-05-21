@@ -19,6 +19,7 @@ final class ReviewDetailViewController: UIViewController {
         let l = UILabel()
         l.font = .systemFont(ofSize: 22, weight: .bold)
         l.textColor = .label
+        l.isUserInteractionEnabled = true   // required for tap gesture
         return l
     }()
 
@@ -115,6 +116,10 @@ final class ReviewDetailViewController: UIViewController {
         setupViews()
         setupConstraints()
         expandHeaderButton.addTarget(self, action: #selector(expandTapped), for: .touchUpInside)
+
+        let nameTap = UITapGestureRecognizer(target: self, action: #selector(userNameTapped))
+        nameLabel.addGestureRecognizer(nameTap)
+
         presenter?.viewDidLoad()
     }
 
@@ -233,7 +238,8 @@ final class ReviewDetailViewController: UIViewController {
         pageControl.currentPage = nextPage
     }
     
-    @objc private func expandTapped() { presenter?.didTapExpandCollapse() }
+    @objc private func expandTapped()   { presenter?.didTapExpandCollapse() }
+    @objc private func userNameTapped() { presenter?.didTapUserName() }
 }
 
 // MARK: - View Protocol
@@ -276,8 +282,9 @@ extension ReviewDetailViewController: UICollectionViewDataSource, UICollectionVi
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int { imageURLs.count }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageSliderCell.reuseID, for: indexPath) as! ImageSliderCell
-        cell.configure(with: imageURLs[indexPath.item])
+        
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageSliderCell.reuseID, for: indexPath)
+        (cell as? ImageSliderCell)?.configure(with: imageURLs[indexPath.item])
         return cell
     }
     

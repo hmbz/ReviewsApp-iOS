@@ -4,7 +4,8 @@ final class ReviewDetailPresenter: ReviewDetailPresenterProtocol {
 
     // MARK: - VIPER
 
-    weak var view: ReviewDetailViewProtocol?
+    weak var view:   ReviewDetailViewProtocol?
+    weak var router: ReviewDetailRouterProtocol?
 
     // MARK: - Private
 
@@ -34,6 +35,11 @@ final class ReviewDetailPresenter: ReviewDetailPresenterProtocol {
     func didTapExpandCollapse() {
         isExpanded.toggle()
         view?.setExpanded(isExpanded)
+    }
+
+    func didTapUserName() {
+        // Presenter owns the decision — View just reports the tap
+        router?.navigateToProfile(for: review.id)
     }
 
     // MARK: - Private — Build Display Model
