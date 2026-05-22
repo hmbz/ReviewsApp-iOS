@@ -66,10 +66,3 @@ Following our last discussion, I wanted to show that I really listened to your f
 - **Layout:** Programmatic UI using SnapKit.
 - **Testing:** I've included unit tests for the Presenter in `ReviewDetailPresenterTests.swift`. I believe code isn't truly finished until it's tested, so I made sure the core logic is covered.
 
----
-
-## Assumptions
-
-- Mock service has 12 reviews across 3 pages (5 per page). Real API would conform to `ReviewServiceProtocol` with no other changes needed.
-- Image loading uses `URLSession` directly. Production would add `NSCache`.
-- Sort is treated as server-side — the mock re-sorts on every fetch, matching real API behavior.
