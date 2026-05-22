@@ -14,7 +14,10 @@ No third-party dependencies. No CocoaPods or SPM required.
 
 ## Architecture
 
-MVVM with a delegate pattern. The ViewController has zero business logic — it only renders state and forwards user actions to the ViewModel.
+The app uses a mixed architecture, which reflects real-world iOS projects:
+
+- **Reviews List** — MVVM with a delegate pattern. The ViewController has zero business logic — it only renders state and forwards user actions to the ViewModel.
+- **Review Detail** — VIPER. Each layer (View, Interactor, Presenter, Entity, Router) has a single responsibility. The Router handles all navigation so the ViewController never knows what comes next.
 
 `ReviewServiceProtocol` abstracts the data layer. Swapping the mock for a real `URLSession` implementation requires no changes to the ViewController or ViewModel.
 
@@ -22,13 +25,19 @@ MVVM with a delegate pattern. The ViewController has zero business logic — it 
 
 ## Features
 
+**Reviews List**
 - Paginated reviews list — loads page 1 on open, appends next pages on scroll
 - Sort by Newest or Highest Rating — changing sort resets to page 1
 - Each review shows name, star rating, date, review text, and an optional image
 - Full state handling: loading spinner, empty state, inline and full-screen error with retry, end-of-list footer
 - Duplicate request prevention via `isLoading` guard
 
----
+**Review Detail**
+- Image carousel with auto-scroll and manual swipe — built with `UICollectionView`
+- Page indicator that hides automatically when there is only one image
+- Expandable "Review Details" section with smooth toggle animation
+- Tapping the reviewer name triggers profile navigation via the VIPER Router
+- Placeholder error icon shown when an image fails to load
 
 ---
 
