@@ -18,7 +18,7 @@ final class ImageSliderCell: UICollectionViewCell {
     }()
 
     // Shown when URL is invalid or network request fails
-    private let errorView: UIImageView = {
+    private lazy var errorView: UIImageView = {
         let iv = UIImageView()
         iv.image = UIImage(systemName: "exclamationmark.triangle")
         iv.tintColor = .systemOrange
