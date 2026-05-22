@@ -70,7 +70,7 @@ final class ReviewDetailViewController: UIViewController {
         let l = UILabel()
         l.font = .systemFont(ofSize: 16)
         l.textColor = .label
-        l.numberOfLines = 0 //due to this it it will expand as long as text
+        l.numberOfLines = 0
         return l
     }()
 
@@ -216,25 +216,17 @@ final class ReviewDetailViewController: UIViewController {
         timer = nil
     }
 
-//    private func scrollToNextImage() {
-//        let nextPage = (pageControl.currentPage + 1) % imageURLs.count
-//        let offset = CGPoint(x: sliderCollectionView.bounds.width * CGFloat(nextPage), y: 0)
-//        sliderCollectionView.setContentOffset(offset, animated: true)
-//    }
-
     private func scrollToNextImage() {
-        // 1. Safety Check: Array khali ho toh return kar jayen
         guard !imageURLs.isEmpty else { return }
-        
-        // 2. Logic: Circular scrolling (0 -> 1 -> 2 -> 0)
+
+        // Circular scrolling: last image wraps back to first
         let nextPage = (pageControl.currentPage + 1) % imageURLs.count
-        
-        // 3. Senior Move: scrollToItem use karein, yeh contentOffset se zyada reliable hai
-        // kyunke yeh CollectionView ki layout calculation par depend karta hai.
+
+        // scrollToItem is preferred over manually setting contentOffset —
+        // it relies on the collection view's own layout engine and is more reliable
         let indexPath = IndexPath(item: nextPage, section: 0)
         sliderCollectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
-        
-        // 4. PageControl update
+
         pageControl.currentPage = nextPage
     }
     
