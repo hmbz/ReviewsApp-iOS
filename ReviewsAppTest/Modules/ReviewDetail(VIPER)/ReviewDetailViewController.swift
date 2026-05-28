@@ -97,7 +97,11 @@ final class ReviewDetailViewController: UIViewController {
         return sv
     }()
 
-    private let expandContentWrapper = UIView()
+    private let expandContentWrapper: UIView = {
+        let v = UIView()
+        v.isHidden = true   // collapsed by default — matches Presenter's isExpanded = false
+        return v
+    }()
     private let expandContentLabel: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 14)
