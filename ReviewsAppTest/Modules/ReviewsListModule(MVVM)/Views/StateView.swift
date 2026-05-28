@@ -80,6 +80,7 @@ final class StateView: UIView {
             make.trailing.equalToSuperview().offset(-40)
         }
 
+        retryButton.isHidden = true   // hidden until configure(showRetry: true) is called
         retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
     }
 

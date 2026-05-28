@@ -217,14 +217,16 @@ final class ReviewsListViewController: UIViewController {
         let previousCount = tableView.numberOfRows(inSection: 0)
         let newCount      = viewModel.reviews.count
 
-        if previousCount == 0 {
+        // reloadData when: first page, or sort reset (previousCount > newCount)
+        guard newCount > previousCount else {
             tableView.reloadData()
-        } else {
-            let newIndexPaths = (previousCount..<newCount).map {
-                IndexPath(row: $0, section: 0)
-            }
-            tableView.insertRows(at: newIndexPaths, with: .automatic)
+            return
         }
+
+        let newIndexPaths = (previousCount..<newCount).map {
+            IndexPath(row: $0, section: 0)
+        }
+        tableView.insertRows(at: newIndexPaths, with: .automatic)
     }
 
     // Shows the pre-built spinner — no layout work here, constraints live in setupConstraints()

@@ -124,11 +124,12 @@ final class ReviewCell: UITableViewCell {
         }
 
         // Image — store the two dynamic constraints
+        // height uses defaultHigh priority so UITableView can break it during cell estimation
         reviewImageView.snp.makeConstraints { make in
             imageTopConstraint    = make.top.equalTo(reviewTextLabel.snp.bottom).offset(0).constraint
             make.leading.equalToSuperview().offset(14)
             make.trailing.equalToSuperview().offset(-14)
-            imageHeightConstraint = make.height.equalTo(0).constraint
+            imageHeightConstraint = make.height.equalTo(0).priority(.defaultHigh).constraint
             make.bottom.equalToSuperview().offset(-14)
         }
     }
