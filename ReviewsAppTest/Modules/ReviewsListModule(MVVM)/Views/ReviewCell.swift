@@ -129,7 +129,7 @@ final class ReviewCell: UITableViewCell {
             imageTopConstraint    = make.top.equalTo(reviewTextLabel.snp.bottom).offset(0).constraint
             make.leading.equalToSuperview().offset(14)
             make.trailing.equalToSuperview().offset(-14)
-            imageHeightConstraint = make.height.equalTo(0).priority(.defaultHigh).constraint
+            imageHeightConstraint = make.height.equalTo(0).priority(.high).constraint
             make.bottom.equalToSuperview().offset(-14)
         }
     }
