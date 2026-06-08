@@ -1,4 +1,5 @@
 import UIKit
+import SnapKit
 
 // ============================================================
 // COMPOSITIONAL LAYOUT DEMO
@@ -318,23 +319,22 @@ final class DemoCarouselCell: UICollectionViewCell {
 
         [titleLabel, subtitleLabel].forEach { contentView.addSubview($0) }
 
-        titleLabel.translatesAutoresizingMaskIntoConstraints    = false
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.snp.makeConstraints {
+            $0.leading.equalToSuperview().offset(16)
+            $0.centerY.equalToSuperview().offset(-12)
+        }
 
-        NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor, constant: -12),
-
-            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-        ])
+        subtitleLabel.snp.makeConstraints {
+            $0.leading.equalTo(titleLabel)
+            $0.top.equalTo(titleLabel.snp.bottom).offset(4)
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
     func configure(with item: DemoItem) {
-        titleLabel.text          = item.title
-        subtitleLabel.text       = item.subtitle
+        titleLabel.text             = item.title
+        subtitleLabel.text          = item.subtitle
         contentView.backgroundColor = item.color
     }
 }
@@ -368,16 +368,15 @@ final class DemoGridCell: UICollectionViewCell {
 
         [titleLabel, subtitleLabel].forEach { contentView.addSubview($0) }
 
-        titleLabel.translatesAutoresizingMaskIntoConstraints    = false
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.centerY.equalToSuperview().offset(-10)
+        }
 
-        NSLayoutConstraint.activate([
-            titleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor, constant: -10),
-
-            subtitleLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-        ])
+        subtitleLabel.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.top.equalTo(titleLabel.snp.bottom).offset(4)
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -417,18 +416,16 @@ final class DemoListCell: UICollectionViewCell {
 
         [titleLabel, subtitleLabel].forEach { contentView.addSubview($0) }
 
-        titleLabel.translatesAutoresizingMaskIntoConstraints    = false
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(12)
+            $0.leading.trailing.equalToSuperview().inset(16)
+        }
 
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            subtitleLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
-        ])
+        subtitleLabel.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(4)
+            $0.leading.equalTo(titleLabel)
+            $0.bottom.equalToSuperview().offset(-12)
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -455,11 +452,10 @@ final class DemoHeaderView: UICollectionReusableView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         addSubview(titleLabel)
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
+        titleLabel.snp.makeConstraints {
+            $0.leading.equalToSuperview()
+            $0.centerY.equalToSuperview()
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
