@@ -116,6 +116,19 @@ final class ReviewsListViewController: UIViewController {
         title = "Reviews"
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
+
+        // Demo button — opens Compositional Layout demo screen
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: "Layout Demo",
+            style: .plain,
+            target: self,
+            action: #selector(openLayoutDemo)
+        )
+    }
+
+    @objc private func openLayoutDemo() {
+        let demoVC = CompositionalDemoViewController()
+        navigationController?.pushViewController(demoVC, animated: true)
     }
 
     // Separated into two functions: one for adding subviews, one for constraints
@@ -180,11 +193,11 @@ final class ReviewsListViewController: UIViewController {
         case .loading:
             stateView.isHidden = false
             showFullScreenSpinner()
-
+// we just show hide state view
         case .loaded:
             stateView.isHidden        = true
             tableView.tableFooterView = nil
-            insertNewRows()
+            insertNewRows() // inseted of loading table view eveytime we make to insert rows
 
         case .error(let message):
             if viewModel.reviews.isEmpty {
